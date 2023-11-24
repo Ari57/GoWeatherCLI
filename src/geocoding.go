@@ -8,8 +8,23 @@ import (
 	"net/http"
 )
 
-func Geocode(GeocodeKey string, location string) (string, string, error) {
+type ResponseResult struct {
+	Geometry struct {
+		Location struct {
+			Lat float64 `json:"lat"`
+			Lng float64 `json:"lng"`
+		} `json:"location"`
+	} `json:"geometry"`
+}
+
+type Response struct {
+	Results []ResponseResult `json:"results"`
+}
+
+func CallGeocodeApi(GeocodeKey string, location string) []byte {
+	fmt.Println(GeocodeKey) // TODO remove
 	HttpLink := "https://maps.googleapis.com/maps/api/geocode/json?key=" + GeocodeKey + "&address=" + location
+	fmt.Println(HttpLink)
 
 	resp, err := http.Get(HttpLink)
 	ErrorChecker(err)
@@ -17,22 +32,17 @@ func Geocode(GeocodeKey string, location string) (string, string, error) {
 	responseData, err := io.ReadAll(resp.Body)
 	ErrorChecker(err)
 
-	type Result struct {
-		Geometry struct {
-			Location struct {
-				Lat float64 `json:"lat"`
-				Lng float64 `json:"lng"`
-			} `json:"location"`
-		} `json:"geometry"`
-	}
+	return responseData
+}
 
-	type Response struct {
-		Results []Result `json:"results"`
-	}
-
+func FormatResult(responseData []byte) (Response, error) {
 	var responseObject Response
-	json.Unmarshal(responseData, &responseObject)
+	err := json.Unmarshal(responseData, &responseObject)
 
+	return responseObject, err
+}
+
+func ReturnResult(responseObject Response) (string, string, error) {
 	if len(responseObject.Results) > 0 {
 		lat := responseObject.Results[0].Geometry.Location.Lat
 		lng := responseObject.Results[0].Geometry.Location.Lng
